@@ -1,0 +1,38 @@
+# Python缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 虚拟环境
+venv/
+env/
+ENV/
+
+# 分发/打包
+dist/
+build/
+*.egg-info/
+
+# 日志文件
+*.log
+
+# 本地配置文件
+config.ini
+settings.json
+
+# 下载的视频文件
+*.mp4
+*.mp3
+*.webm
+*.m4a
+
+# macOS系统文件
+.DS_Store
+
+# 历史记录文件
+history.json
+
+# IDE文件
+.idea/
+.vscode/
+*.swp
