@@ -289,8 +289,31 @@ class YoutubeDownloader(QMainWindow):
         
         # 字幕选项
         if self.settings_tab.subtitle_check.isChecked():
+            # 启用字幕下载
             ydl_opts['writesubtitles'] = True
             ydl_opts['writeautomaticsub'] = True
+            
+            # 设置字幕格式为srt
+            ydl_opts['subtitlesformat'] = 'srt'
+            
+            # 如果有字幕语言选择功能，则设置语言
+            if hasattr(self.settings_tab, 'subtitle_lang_combo') and self.settings_tab.subtitle_lang_combo.currentText() != "自动":
+                selected_lang = self.settings_tab.subtitle_lang_combo.currentText()
+                lang_code = self.get_language_code(selected_lang)
+                if lang_code:
+                    ydl_opts['subtitleslangs'] = [lang_code]
+            else:
+                # 默认下载所有可用字幕
+                ydl_opts['subtitleslangs'] = ['zh-Hans']
+            
+            # 添加字幕后处理器，确保转换为srt格式
+            if 'postprocessors' not in ydl_opts:
+                ydl_opts['postprocessors'] = []
+            
+            ydl_opts['postprocessors'].append({
+                'key': 'FFmpegSubtitlesConvertor',
+                'format': 'srt',
+            })
         
         # 速度限制选项
         if self.settings_tab.limit_check.isChecked() and self.settings_tab.limit_input.text().strip():

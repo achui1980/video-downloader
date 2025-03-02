@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube下载器</title>
+  <style>
+    body {
+      width: 320px;
+      font-family: Arial, sans-serif;
+      padding: 10px;
+    }
+    h1 {
+      font-size: 18px;
+      color: #cc0000;
+      margin-top: 0;
+    }
+    .form-group {
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"], select {
+      width: 100%;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #cc0000;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #990000;
+    }
+    .tasks {
+      margin-top: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .task-item {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .task-item:last-child {
+      border-bottom: none;
+    }
+    .status-pending {
+      color: #ff9800;
+    }
+    .status-downloading {
+      color: #2196F3;
+    }
+    .status-completed {
+      color: #4CAF50;
+    }
+    .status-error {
+      color: #f44336;
+    }
+  </style>
+</head>
+<body>
+  <h1>YouTube下载器</h1>
+  
+  <div class="form-group">
+    <label for="url">视频URL:</label>
+    <input type="text" id="url" placeholder="输入YouTube视频URL">
+  </div>
+  
+  <div class="form-group">
+    <label for="format">下载格式:</label>
+    <select id="format">
+      <option value="最佳质量">最佳质量</option>
+      <option value="仅音频 (MP3)">仅音频 (MP3)</option>
+      <option value="1080p">1080p</option>
+      <option value="720p">720p</option>
+      <option value="480p">480p</option>
+      <option value="360p">360p</option>
+    </select>
+  </div>
+  
+  <button id="downloadBtn">下载</button>
+  
+  <div class="form-group" style="margin-top: 15px;">
+    <label for="apiUrl">API地址:</label>
+    <input type="text" id="apiUrl" placeholder="http://localhost:8765/api/v1/download">
+  </div>
+  
+  <div class="form-group">
+    <label for="outputDir">输出目录 (可选):</label>
+    <input type="text" id="outputDir" placeholder="例如: /Users/username/Downloads">
+  </div>
+  
+  <button id="saveSettingsBtn">保存设置</button>
+  
+  <h2 style="font-size: 16px; margin-top: 15px;">最近下载</h2>
+  <div id="tasks" class="tasks">
+    <!-- 任务列表将在这里动态生成 -->
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

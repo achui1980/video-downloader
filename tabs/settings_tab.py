@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QGroupBox, QFormLayout, 
-                            QCheckBox, QLineEdit)
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, 
+                            QCheckBox, QLineEdit, QLabel, QComboBox)
 from PyQt6.QtCore import Qt
 
 class SettingsTab(QWidget):
@@ -17,10 +17,21 @@ class SettingsTab(QWidget):
         
         # 字幕选项
         subtitle_group = QGroupBox("字幕选项")
-        subtitle_layout = QFormLayout()
+        
+        # 在subtitle_check后添加语言选择下拉框
+        subtitle_layout = QHBoxLayout()
         
         self.subtitle_check = QCheckBox("下载字幕")
-        subtitle_layout.addRow("", self.subtitle_check)
+        subtitle_layout.addWidget(self.subtitle_check)
+        
+        self.subtitle_lang_label = QLabel("字幕语言:")
+        subtitle_layout.addWidget(self.subtitle_lang_label)
+        
+        self.subtitle_lang_combo = QComboBox()
+        self.subtitle_lang_combo.addItems(["自动", "中文", "英文", "日文", "韩文", "法文", "德文", 
+                                          "西班牙文", "俄文", "意大利文", "葡萄牙文", "阿拉伯文", 
+                                          "印地文", "泰文", "越南文"])
+        subtitle_layout.addWidget(self.subtitle_lang_combo)
         
         subtitle_group.setLayout(subtitle_layout)
         settings_layout.addWidget(subtitle_group)

@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube下载器",
+  "version": "1.0",
+  "description": "右键点击下载YouTube视频",
+  "permissions": ["contextMenus", "activeTab", "storage"],
+  "host_permissions": ["http://localhost:8765/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
