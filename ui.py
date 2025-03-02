@@ -15,7 +15,7 @@ import yt_dlp
 
 from download_thread import DownloadThread, AnalyzeThread
 from custom_events import ShowMessageEvent, UpdateStatusEvent, UpdateVideoInfoEvent, handle_custom_event
-from utils import format_duration, format_size, format_time
+from utils import format_duration, format_size, format_time, get_language_code
 from history_manager import HistoryManager
 from tabs.history_tab import HistoryTab
 from tabs.settings_tab import SettingsTab
@@ -299,12 +299,12 @@ class YoutubeDownloader(QMainWindow):
             # 如果有字幕语言选择功能，则设置语言
             if hasattr(self.settings_tab, 'subtitle_lang_combo') and self.settings_tab.subtitle_lang_combo.currentText() != "自动":
                 selected_lang = self.settings_tab.subtitle_lang_combo.currentText()
-                lang_code = self.get_language_code(selected_lang)
+                lang_code = get_language_code(selected_lang)
                 if lang_code:
                     ydl_opts['subtitleslangs'] = [lang_code]
             else:
                 # 默认下载所有可用字幕
-                ydl_opts['subtitleslangs'] = ['zh-Hans']
+                ydl_opts['subtitleslangs'] = ['en']
             
             # 添加字幕后处理器，确保转换为srt格式
             if 'postprocessors' not in ydl_opts:

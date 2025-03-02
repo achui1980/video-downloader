@@ -39,3 +39,12 @@ def format_time(seconds):
         h, remainder = divmod(seconds, 3600)
         m, s = divmod(remainder, 60)
         return f"{h}时{m}分{s}秒"
+
+def get_language_code(language_name):
+    """将语言名称转换为语言代码"""
+    language_map = {
+        "中文": "zh-Hans",
+        "英文": "en",
+        "日文": "ja"
+    }
+    return language_map.get(language_name, None)

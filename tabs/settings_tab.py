@@ -28,9 +28,7 @@ class SettingsTab(QWidget):
         subtitle_layout.addWidget(self.subtitle_lang_label)
         
         self.subtitle_lang_combo = QComboBox()
-        self.subtitle_lang_combo.addItems(["自动", "中文", "英文", "日文", "韩文", "法文", "德文", 
-                                          "西班牙文", "俄文", "意大利文", "葡萄牙文", "阿拉伯文", 
-                                          "印地文", "泰文", "越南文"])
+        self.subtitle_lang_combo.addItems(["自动", "中文", "英文", "日文"])
         subtitle_layout.addWidget(self.subtitle_lang_combo)
         
         subtitle_group.setLayout(subtitle_layout)

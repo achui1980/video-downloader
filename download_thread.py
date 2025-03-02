@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QApplication, QMessageBox
 import yt_dlp
 
 from custom_events import ShowMessageEvent, UpdateStatusEvent, UpdateVideoInfoEvent
+from download import YouTubeDownloader
 
 # 移除 HistoryManager 类，它现在在单独的文件中
 class DownloadThread(QThread):
@@ -24,11 +25,10 @@ class DownloadThread(QThread):
             # Add progress hooks
             self.options['progress_hooks'] = [self.progress_hook]
             
-            # Create a downloader
-            with yt_dlp.YoutubeDL(self.options) as ydl:
-                info = ydl.extract_info(self.url, download=True)
-                if not self.is_cancelled:
-                    self.complete_signal.emit(info)
+            # 使用YouTubeDownloader类下载视频
+            info = YouTubeDownloader.extract_info(self.url, self.options, download=True)
+            if not self.is_cancelled:
+                self.complete_signal.emit(info)
         except Exception as e:
             if not self.is_cancelled:
                 self.error_signal.emit(str(e))
@@ -56,9 +56,9 @@ class AnalyzeThread(QThread):
         
     def run(self):
         try:
-            with yt_dlp.YoutubeDL(self.ydl_opts) as ydl:
-                self.status_signal.emit("正在获取视频信息...")
-                info = ydl.extract_info(self.url, download=False)
-                self.info_ready_signal.emit(info)
+            self.status_signal.emit("正在获取视频信息...")
+            # 使用YouTubeDownloader类分析视频
+            info = YouTubeDownloader.extract_info(self.url, self.ydl_opts, download=False)
+            self.info_ready_signal.emit(info)
         except Exception as e:
             self.error_signal.emit(f"分析视频时出错: {str(e)}")
