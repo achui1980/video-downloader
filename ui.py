@@ -13,6 +13,7 @@ from PyQt6.QtCore import Qt, QSize, QMetaObject, QThread
 from PyQt6.QtGui import QIcon, QFont
 import yt_dlp
 
+from download import YouTubeDownloader
 from download_thread import DownloadThread, AnalyzeThread
 from custom_events import ShowMessageEvent, UpdateStatusEvent, UpdateVideoInfoEvent, handle_custom_event
 from utils import format_duration, format_size, format_time, get_language_code
@@ -153,7 +154,7 @@ class YoutubeDownloader(QMainWindow):
         all_layout.addLayout(status_layout)
         
         # 设置标签页
-        settings_layout = QVBoxLayout(self.settings_tab)
+        # settings_layout = QVBoxLayout(self.settings_tab)
         
         main_layout.addWidget(tabs)
         self.setCentralWidget(main_widget)
@@ -255,83 +256,50 @@ class YoutubeDownloader(QMainWindow):
                 QMessageBox.critical(self, "错误", f"无法创建下载目录: {str(e)}")
                 return
         
-        # 准备下载选项
-        ydl_opts = {
-            'outtmpl': os.path.join(download_path, '%(title)s.%(ext)s'),
-        }
-        
-        # 格式选择
-        format_option = self.format_combo.currentText()
-        if format_option == "最佳质量":
-            ydl_opts['format'] = 'bestvideo+bestaudio/best'
-            ydl_opts['merge_output_format'] = 'mp4'
-        elif format_option == "仅视频":
-            ydl_opts['format'] = 'bestvideo/best'
-        elif format_option == "仅音频 (MP3)":
-            ydl_opts['format'] = 'bestaudio/best'
-            ydl_opts['postprocessors'] = [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }]
-        elif format_option == "1080p":
-            ydl_opts['format'] = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]'
-            ydl_opts['merge_output_format'] = 'mp4'
-        elif format_option == "720p":
-            ydl_opts['format'] = 'bestvideo[height<=720]+bestaudio/best[height<=720]'
-            ydl_opts['merge_output_format'] = 'mp4'
-        elif format_option == "480p":
-            ydl_opts['format'] = 'bestvideo[height<=480]+bestaudio/best[height<=480]'
-            ydl_opts['merge_output_format'] = 'mp4'
-        elif format_option == "360p":
-            ydl_opts['format'] = 'bestvideo[height<=360]+bestaudio/best[height<=360]'
-            ydl_opts['merge_output_format'] = 'mp4'
-        
-        # 字幕选项
+        # 准备字幕选项
+        subtitle_options = None
         if self.settings_tab.subtitle_check.isChecked():
-            # 启用字幕下载
-            ydl_opts['writesubtitles'] = True
-            ydl_opts['writeautomaticsub'] = True
-            
-            # 设置字幕格式为srt
-            ydl_opts['subtitlesformat'] = 'srt'
-            
-            # 如果有字幕语言选择功能，则设置语言
+            subtitle_options = {
+                'enabled': True
+            }
             if hasattr(self.settings_tab, 'subtitle_lang_combo') and self.settings_tab.subtitle_lang_combo.currentText() != "自动":
                 selected_lang = self.settings_tab.subtitle_lang_combo.currentText()
                 lang_code = get_language_code(selected_lang)
                 if lang_code:
-                    ydl_opts['subtitleslangs'] = [lang_code]
-            else:
-                # 默认下载所有可用字幕
-                ydl_opts['subtitleslangs'] = ['en']
-            
-            # 添加字幕后处理器，确保转换为srt格式
-            if 'postprocessors' not in ydl_opts:
-                ydl_opts['postprocessors'] = []
-            
-            ydl_opts['postprocessors'].append({
-                'key': 'FFmpegSubtitlesConvertor',
-                'format': 'srt',
-            })
+                    subtitle_options['language'] = lang_code
         
-        # 速度限制选项
+        # 获取下载速度限制
+        limit = None
         if self.settings_tab.limit_check.isChecked() and self.settings_tab.limit_input.text().strip():
-            ydl_opts['ratelimit'] = self.settings_tab.limit_input.text().strip()
+            limit = self.settings_tab.limit_input.text().strip()
         
-        # 代理选项
+        # 获取代理设置
+        proxy = None
         if self.settings_tab.proxy_check.isChecked() and self.settings_tab.proxy_input.text().strip():
-            ydl_opts['proxy'] = self.settings_tab.proxy_input.text().strip()
-            
-        # 添加Chrome浏览器Cookies选项
-        if hasattr(self.settings_tab, 'chrome_cookies_check') and self.settings_tab.chrome_cookies_check.isChecked():
-            ydl_opts['cookiesfrombrowser'] = ('chrome',)
+            proxy = self.settings_tab.proxy_input.text().strip()
+        
+        # 获取Chrome浏览器cookies设置
+        use_chrome_cookies = False
+        if hasattr(self.settings_tab, 'chrome_cookies_check'):
+            use_chrome_cookies = self.settings_tab.chrome_cookies_check.isChecked()
+        
+        # 使用YouTubeDownloader来准备下载选项
+        format_option = self.format_combo.currentText()
+        ydl_opts = YouTubeDownloader.prepare_download_options(
+            format_option, 
+            download_path, 
+            subtitle_options, 
+            limit, 
+            proxy, 
+            use_chrome_cookies
+        )
         
         # 创建下载线程
         download_thread = DownloadThread(url, ydl_opts)
         download_thread.progress_signal.connect(self.update_progress)
         download_thread.complete_signal.connect(self.download_complete)
         download_thread.error_signal.connect(self.download_error)
+        download_thread.cancelled_signal.connect(self.download_cancelled)  
         
         # 保存线程引用
         self.download_threads[url] = download_thread
@@ -389,46 +357,11 @@ class YoutubeDownloader(QMainWindow):
         url = self.url_input.text().strip()
         format_option = self.format_combo.currentText()
         
-        # 从下载信息中获取实际文件路径和其他信息
-        title = info.get('title', '未知')
-        duration = format_duration(info.get('duration', 0))
-        size = '未知'
-        resolution = '未知'
-        uploader = info.get('uploader', '未知')
+        # 使用YouTubeDownloader获取下载结果信息
+        history_item = YouTubeDownloader.get_download_info_from_result(info, format_option)
         
-        if info and 'requested_downloads' in info:
-            # 从请求的下载列表中获取第一个文件
-            download_info = info['requested_downloads'][0] if info['requested_downloads'] else None
-            if download_info:
-                if 'filepath' in download_info:
-                    # 使用实际下载的文件路径
-                    filepath = download_info['filepath']
-                    # 从文件路径中提取文件名（不含扩展名）
-                    title = os.path.splitext(os.path.basename(filepath))[0]
-                
-                # 获取文件大小
-                if 'filesize' in download_info and download_info['filesize']:
-                    size = format_size(download_info['filesize'])
-                elif 'filesize_approx' in download_info and download_info['filesize_approx']:
-                    size = format_size(download_info['filesize_approx'])
-                
-                # 获取分辨率
-                if 'resolution' in download_info and download_info['resolution']:
-                    resolution = download_info['resolution']
-                elif 'height' in download_info and download_info['height']:
-                    resolution = f"{download_info['height']}p"
-        
-        # 创建更详细的历史记录项
-        history_item = {
-            'title': title,
-            'url': url,
-            'format': format_option,
-            'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'duration': duration,
-            'size': size,
-            'resolution': resolution,
-            'uploader': uploader
-        }
+        # 添加时间戳
+        history_item['time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         # 添加到表格
         row = self.history_tab.history_table.rowCount()
@@ -496,8 +429,21 @@ class YoutubeDownloader(QMainWindow):
         if url in self.download_threads:
             del self.download_threads[url]
     
+    def download_cancelled(self):
+        """处理下载取消的情况"""
+        self.download_btn.setEnabled(True)
+        self.cancel_btn.setEnabled(False)
+        self.status_label.setText("下载已取消")
+        self.progress_bar.setValue(0)
+        
+        # 清理线程引用
+        url = self.url_input.text().strip()
+        if url in self.download_threads:
+            del self.download_threads[url]
+    
     def cancel_download(self):
         url = self.url_input.text().strip()
         if url in self.download_threads:
-            self.download_threads[url].cancel()
             self.status_label.setText("正在取消...")
+            self.download_threads[url].cancel()
+            # 不在这里删除线程引用和重置UI状态，而是在cancelled_signal处理中进行
