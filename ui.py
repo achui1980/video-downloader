@@ -27,6 +27,10 @@ class YoutubeDownloader(QMainWindow):
         super().__init__()
         self.download_threads = {}
         self.download_history = []
+        
+        # 初始化日志系统
+        self.init_logger()
+        
         # 初始化历史记录管理器
         self.history_manager = HistoryManager()
         # 加载历史记录
@@ -35,6 +39,29 @@ class YoutubeDownloader(QMainWindow):
         # 修复自定义事件处理方法的绑定
         # 使用 lambda 函数来正确传递参数
         self.customEvent = lambda event: handle_custom_event(self, event)
+    
+    def init_logger(self):
+        """初始化日志系统"""
+        # 获取应用程序启动目录
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+        log_dir = os.path.join(app_dir, 'logs')
+        
+        # 确保日志目录存在
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        
+        # 创建应用程序日志文件
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        log_file = os.path.join(log_dir, f'app_{timestamp}.log')
+        
+        # 初始化日志记录器
+        from my_logger import MyLogger
+        self.logger = MyLogger.get_instance(log_file)
+        
+        # 记录应用程序启动信息
+        self.logger.info(f"应用程序启动于 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        self.logger.info(f"应用程序目录: {app_dir}")
+        self.logger.info(f"日志目录: {log_dir}")
         
     def initUI(self):
         self.setWindowTitle('YouTube 视频下载器')
@@ -291,7 +318,9 @@ class YoutubeDownloader(QMainWindow):
             subtitle_options, 
             limit, 
             proxy, 
-            use_chrome_cookies
+            use_chrome_cookies,
+            enable_logging=True,
+            url=url
         )
         
         # 创建下载线程
@@ -446,4 +475,4 @@ class YoutubeDownloader(QMainWindow):
         if url in self.download_threads:
             self.status_label.setText("正在取消...")
             self.download_threads[url].cancel()
-            # 不在这里删除线程引用和重置UI状态，而是在cancelled_signal处理中进行
+            # 不在这里删除线程引用和重置UI状态，就是在cancelled_signal处理中进行

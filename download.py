@@ -4,7 +4,8 @@
 import yt_dlp
 from utils import format_size, format_time, format_duration
 import os
-
+from datetime import datetime
+from my_logger import MyLogger
 class YouTubeDownloader:
     """YouTube视频下载器核心类"""
     
@@ -76,25 +77,53 @@ class YouTubeDownloader:
         }
     
     @staticmethod
-    def prepare_download_options(format_option, download_path, subtitle_options=None, limit=None, proxy=None, use_chrome_cookies=False):
+    def configure_logging(download_path, url=None):
         """
-        准备下载选项
+        配置yt-dlp的日志选项
         
         Args:
-            format_option: 格式选项
-            download_path: 下载路径
-            subtitle_options: 字幕选项字典
-            limit: 下载速度限制
-            proxy: 代理设置
-            use_chrome_cookies: 是否使用Chrome浏览器cookies
+            download_path: 下载目录路径
+            url: 视频URL (可选)
             
         Returns:
-            准备好的yt-dlp选项字典
+            包含日志配置的选项字典
         """
-        # 基本下载选项
+        # 创建日志目录
+        log_dir = os.path.join(download_path, 'logs')
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        
+        # 使用时间戳创建唯一的日志文件名
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        video_id = url.split('?v=')[-1].split('&')[0] if url and '?v=' in url else 'video'
+        log_file = os.path.join(log_dir, f'yt-dlp_{video_id}_{timestamp}.log')
+        custom_logger = MyLogger.get_instance(log_file)
+        # 配置日志选项
+        log_opts = {
+            # 移除错误的YoutubeDLLogger引用
+            'logger': custom_logger,
+            'logtostderr': False,  # 不将日志输出到stderr
+            'quiet': False,        # 不使用安静模式
+            'verbose': True,       # 使用详细模式
+            'writedescription': True,  # 写入视频描述
+            'writeinfojson': False,     # 写入视频信息JSON
+            'logfile': log_file
+        }
+        
+        return log_opts
+    
+    @staticmethod
+    def prepare_download_options(format_option, download_path, subtitle_options=None, 
+                                limit=None, proxy=None, use_chrome_cookies=False, enable_logging=True, url=None):
+        """准备下载选项"""
         ydl_opts = {
             'outtmpl': os.path.join(download_path, '%(title)s.%(ext)s'),
         }
+        
+        # 添加日志配置
+        if enable_logging:
+            log_opts = YouTubeDownloader.configure_logging(download_path, url)
+            ydl_opts.update(log_opts)
         
         # 格式选择
         if format_option == "最佳质量":
