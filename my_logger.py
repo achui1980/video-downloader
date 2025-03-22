@@ -14,9 +14,13 @@ class MyLogger:
     def __init__(self, log_file=None):
         # 移除默认的 sink
         logger.remove()
+
+        if hasattr(sys.stdout, "isatty"):
+            format_str = "<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>"
+            # 添加控制台输出
+            logger.add(sys.stderr, level="INFO", format=format_str)
         
-        # 添加控制台输出
-        logger.add(sys.stderr, level="INFO", format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>")
+        
         
         # 如果提供了日志文件，添加文件输出
         if log_file:

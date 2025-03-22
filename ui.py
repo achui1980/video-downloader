@@ -28,9 +28,6 @@ class YoutubeDownloader(QMainWindow):
         self.download_threads = {}
         self.download_history = []
         
-        # 初始化日志系统
-        self.init_logger()
-        
         # 初始化历史记录管理器
         self.history_manager = HistoryManager()
         # 加载历史记录
@@ -40,15 +37,16 @@ class YoutubeDownloader(QMainWindow):
         # 使用 lambda 函数来正确传递参数
         self.customEvent = lambda event: handle_custom_event(self, event)
     
-    def init_logger(self):
+    def init_logger(self, log_dir):
         """初始化日志系统"""
         # 获取应用程序启动目录
-        app_dir = os.path.dirname(os.path.abspath(__file__))
-        log_dir = os.path.join(app_dir, 'logs')
+        if not log_dir:
+            app_dir = os.path.dirname(os.path.abspath(__file__))
+            log_dir = os.path.join(app_dir, 'logs')
         
         # 确保日志目录存在
         if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
+            os.makedirs(log_dir, exist_ok=True)
         
         # 创建应用程序日志文件
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -60,7 +58,7 @@ class YoutubeDownloader(QMainWindow):
         
         # 记录应用程序启动信息
         self.logger.info(f"应用程序启动于 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        self.logger.info(f"应用程序目录: {app_dir}")
+        # self.logger.info(f"应用程序目录: {app_dir}")
         self.logger.info(f"日志目录: {log_dir}")
         
     def initUI(self):
@@ -75,7 +73,9 @@ class YoutubeDownloader(QMainWindow):
         toolbar_layout = QHBoxLayout()
         
         # 下载按钮
-        download_label = QLabel("下载")
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+        log_dir = os.path.join(app_dir, 'logs')
+        download_label = QLabel(f"下载- {log_dir}")
         toolbar_layout.addWidget(download_label)
         
         # 格式选择
@@ -96,8 +96,9 @@ class YoutubeDownloader(QMainWindow):
         save_to_label = QLabel("保存到")
         toolbar_layout.addWidget(save_to_label)
         
+        download_path = os.path.expanduser("~/Movies/yt-dlp")
         self.download_path = QLineEdit()
-        self.download_path.setText(os.path.expanduser("~/Movies/yt-dlp"))
+        self.download_path.setText(download_path)
         toolbar_layout.addWidget(self.download_path)
         
         self.browse_btn = QPushButton("浏览...")
@@ -105,6 +106,10 @@ class YoutubeDownloader(QMainWindow):
         toolbar_layout.addWidget(self.browse_btn)
         
         main_layout.addLayout(toolbar_layout)
+
+         # 初始化日志系统
+        log_dir = os.path.join(download_path, 'logs')
+        self.init_logger(log_dir)
         
         # URL输入区域
         url_layout = QHBoxLayout()
