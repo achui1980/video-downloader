@@ -138,6 +138,29 @@ class YouTubeDownloader:
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }]
+        elif format_option == "仅字幕":
+            # 跳过视频下载，只下载字幕
+            ydl_opts['skip_download'] = True
+            ydl_opts['writesubtitles'] = True
+            ydl_opts['writeautomaticsub'] = True
+            ydl_opts['subtitlesformat'] = 'vtt'  # 先下载为 VTT 格式
+            
+            # 默认下载中文和英文字幕
+            ydl_opts['subtitleslangs'] = ['zh-Hans']
+            
+            # 添加字幕处理器，确保转换为srt格式
+            if 'postprocessors' not in ydl_opts:
+                ydl_opts['postprocessors'] = []
+            
+            # 使用更明确的后处理器配置
+            ydl_opts['postprocessors'].append({
+                'key': 'FFmpegSubtitlesConvertor',
+                'format': 'srt',
+                'when': 'before_dl',  # 在下载前运行后处理器
+            })
+            
+            # 确保后处理器运行
+            # ydl_opts['force_generic_extractor'] = False
         elif format_option == "1080p":
             ydl_opts['format'] = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]'
             ydl_opts['merge_output_format'] = 'mp4'
@@ -167,7 +190,7 @@ class YouTubeDownloader:
                 # 默认下载所有可用字幕
                 ydl_opts['subtitleslangs'] = ['en']
             
-            # 添加字幕后处理器，确保转换为srt格式
+            # 添加字幕处理器，确保转换为srt格式
             if 'postprocessors' not in ydl_opts:
                 ydl_opts['postprocessors'] = []
             

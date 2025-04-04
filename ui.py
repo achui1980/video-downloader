@@ -80,7 +80,7 @@ class YoutubeDownloader(QMainWindow):
         
         # 格式选择
         self.format_combo = QComboBox()
-        self.format_combo.addItems(["最佳质量", "仅视频", "仅音频 (MP3)", "1080p", "720p", "480p", "360p"])
+        self.format_combo.addItems(["最佳质量", "仅视频", "仅音频 (MP3)", "仅字幕", "1080p", "720p", "480p", "360p"])
         toolbar_layout.addWidget(self.format_combo)
         
         # 为系统选择
