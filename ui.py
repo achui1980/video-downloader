@@ -259,14 +259,28 @@ class YoutubeDownloader(QMainWindow):
         info_text += f"时长: {format_duration(info.get('duration', 0))}\n"
         info_text += f"上传日期: {info.get('upload_date', '未知')}\n\n"
         
-        # if 'formats' in info:
-        #     info_text += "可用格式:\n"
-        #     for fmt in info['formats']:
-        #         format_note = fmt.get('format_note', '')
-        #         if format_note:
-        #             resolution = fmt.get('resolution', 'N/A')
-        #             ext = fmt.get('ext', 'N/A')
-        #             info_text += f"- {format_note} ({resolution}, {ext})\n"
+        # 添加字幕语言支持信息
+        if 'subtitles' in info and info['subtitles']:
+            available_subtitles = info['subtitles'].keys()
+            info_text += "字幕支持:\n"
+            
+            # 获取设置选项卡中配置的字幕语言
+            supported_languages = []
+            for child in self.settings_tab.findChildren(QCheckBox):
+                lang_name = child.text()
+                lang_code = get_language_code(lang_name)
+                if lang_code:
+                    is_supported = lang_code in available_subtitles
+                    supported_languages.append(f"- {lang_name}: {'✓' if is_supported else '✗'}")
+            
+            # 如果没有找到配置的语言，显示所有可用的字幕
+            if not supported_languages:
+                for lang_code in available_subtitles:
+                    supported_languages.append(f"- {lang_code}")
+            
+            info_text += "\n".join(supported_languages) + "\n"
+        else:
+            info_text += "字幕支持: 无\n"
         
         self.video_info.setText(info_text)
         self.status_label.setText("分析完成")
