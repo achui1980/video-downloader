@@ -145,8 +145,11 @@ class YouTubeDownloader:
             ydl_opts['writeautomaticsub'] = True
             ydl_opts['subtitlesformat'] = 'vtt'  # 先下载为 VTT 格式
             
-            # 默认下载中文和英文字幕
-            ydl_opts['subtitleslangs'] = ['zh-Hans']
+            if subtitle_options and 'languages' in subtitle_options:
+                ydl_opts['subtitleslangs'] = subtitle_options['languages']
+            else:
+                # 默认下载中文字幕
+                ydl_opts['subtitleslangs'] = ['zh-Hans']
             
             # 添加字幕处理器，确保转换为srt格式
             if 'postprocessors' not in ydl_opts:

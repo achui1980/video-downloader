@@ -19,17 +19,38 @@ class SettingsTab(QWidget):
         subtitle_group = QGroupBox("字幕选项")
         
         # 在subtitle_check后添加语言选择下拉框
-        subtitle_layout = QHBoxLayout()
+        subtitle_layout = QVBoxLayout()  # 改为垂直布局以便更好地组织控件
         
-        self.subtitle_check = QCheckBox("下载字幕")
-        subtitle_layout.addWidget(self.subtitle_check)
+        subtitle_header = QHBoxLayout()
+        self.subtitle_check = QCheckBox("下载视频同时下载字幕")
+        subtitle_header.addWidget(self.subtitle_check)
         
         self.subtitle_lang_label = QLabel("字幕语言:")
-        subtitle_layout.addWidget(self.subtitle_lang_label)
+        subtitle_header.addWidget(self.subtitle_lang_label)
         
         self.subtitle_lang_combo = QComboBox()
         self.subtitle_lang_combo.addItems(["自动", "中文", "英文", "日文"])
-        subtitle_layout.addWidget(self.subtitle_lang_combo)
+        subtitle_header.addWidget(self.subtitle_lang_combo)
+        
+        subtitle_layout.addLayout(subtitle_header)
+        
+        # 添加字幕语言选择组
+        subtitle_only_group = QGroupBox("仅下载字幕时使用的语言选择")
+        lang_options = QHBoxLayout()
+        self.zh_subtitle_check = QCheckBox("中文")
+        self.zh_subtitle_check.setChecked(True)
+        lang_options.addWidget(self.zh_subtitle_check)
+        
+        self.en_subtitle_check = QCheckBox("英文")
+        self.en_subtitle_check.setChecked(False)
+        lang_options.addWidget(self.en_subtitle_check)
+        
+        self.jp_subtitle_check = QCheckBox("日文")
+        self.jp_subtitle_check.setChecked(False)
+        lang_options.addWidget(self.jp_subtitle_check)
+        
+        subtitle_only_group.setLayout(lang_options)
+        subtitle_layout.addWidget(subtitle_only_group)
         
         subtitle_group.setLayout(subtitle_layout)
         settings_layout.addWidget(subtitle_group)

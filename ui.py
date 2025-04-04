@@ -75,7 +75,7 @@ class YoutubeDownloader(QMainWindow):
         # 下载按钮
         app_dir = os.path.dirname(os.path.abspath(__file__))
         log_dir = os.path.join(app_dir, 'logs')
-        download_label = QLabel(f"下载- {log_dir}")
+        download_label = QLabel(f"下载")
         toolbar_layout.addWidget(download_label)
         
         # 格式选择
@@ -317,6 +317,15 @@ class YoutubeDownloader(QMainWindow):
         
         # 使用YouTubeDownloader来准备下载选项
         format_option = self.format_combo.currentText()
+        if format_option == "仅字幕":
+            selected_langs = self.show_subtitle_options_dialog()
+            if not selected_langs:
+                return  # 用户取消了操作
+            else:
+                subtitle_options = {
+                    'languages': selected_langs
+                }
+        
         ydl_opts = YouTubeDownloader.prepare_download_options(
             format_option, 
             download_path, 
@@ -481,3 +490,76 @@ class YoutubeDownloader(QMainWindow):
             self.status_label.setText("正在取消...")
             self.download_threads[url].cancel()
             # 不在这里删除线程引用和重置UI状态，就是在cancelled_signal处理中进行
+
+    def show_subtitle_options_dialog(self):
+        """显示字幕选项对话框"""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QCheckBox, QPushButton
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("选择字幕语言")
+        dialog.setMinimumWidth(300)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # 使用设置选项卡中的字幕选择
+        lang_options = QHBoxLayout()
+        
+        # 复制设置选项卡中的字幕选择状态
+        zh_check = QCheckBox("中文")
+        zh_check.setChecked(self.settings_tab.zh_subtitle_check.isChecked())
+        lang_options.addWidget(zh_check)
+        
+        en_check = QCheckBox("英文")
+        en_check.setChecked(self.settings_tab.en_subtitle_check.isChecked())
+        lang_options.addWidget(en_check)
+        
+        jp_check = QCheckBox("日文")
+        jp_check.setChecked(self.settings_tab.jp_subtitle_check.isChecked())
+        lang_options.addWidget(jp_check)
+        
+        layout.addLayout(lang_options)
+        
+        # 添加按钮
+        button_layout = QHBoxLayout()
+        cancel_btn = QPushButton("取消")
+        cancel_btn.clicked.connect(dialog.reject)
+        download_btn = QPushButton("下载")
+        download_btn.clicked.connect(dialog.accept)
+        download_btn.setDefault(True)
+        
+        button_layout.addWidget(cancel_btn)
+        button_layout.addWidget(download_btn)
+        layout.addLayout(button_layout)
+        
+        # 显示对话框
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # 更新设置选项卡中的字幕选择状态
+            # 创建对话框中复选框的映射，以便快速查找
+            dialog_checkboxes = {}
+            for i in range(lang_options.count()):
+                widget = lang_options.itemAt(i).widget()
+                if isinstance(widget, QCheckBox):
+                    dialog_checkboxes[widget.text()] = widget.isChecked()
+            
+            # 遍历设置选项卡中的所有子组件
+            for child in self.settings_tab.findChildren(QCheckBox):
+                # 如果找到匹配的复选框（通过文本匹配）
+                if child.text() in dialog_checkboxes:
+                    # 设置其状态为对话框中对应复选框的状态
+                    child.setChecked(dialog_checkboxes[child.text()])
+            
+            # 获取选择的语言
+            selected_langs = []
+            # 遍历布局中的所有复选框
+            for i in range(lang_options.count()):
+                widget = lang_options.itemAt(i).widget()
+                if isinstance(widget, QCheckBox) and widget.isChecked():
+                    # 从复选框标签获取语言名称，然后转换为语言代码
+                    lang_name = widget.text()
+                    lang_code = get_language_code(lang_name)
+                    if lang_code:
+                        selected_langs.append(lang_code)
+            
+            return selected_langs
+        
+        return None
