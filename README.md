@@ -32,7 +32,6 @@ pip install -r requirements.txt
 ```
 
 3. 运行程序
-
 ```bash
 python main.py
 ```
@@ -53,3 +52,8 @@ python main.py
 - [ ] 引入Duckdb做为数据库，用于记录下载历史
 - [ ] 删除历史记录可以批量删除，并且删掉对应的文件和字幕
 - [ ] 浏览器插件，可以显示下载日志
+
+## 截图
+![截图1](./snapshot/snapshot1.jpg)
+![截图2](./snapshot/snapshot2.jpg)
+![截图3](./snapshot/snapshot3.jpg)
