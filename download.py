@@ -118,6 +118,11 @@ class YouTubeDownloader:
         """准备下载选项"""
         ydl_opts = {
             'outtmpl': os.path.join(download_path, '%(title)s.%(ext)s'),
+            # 添加SSL相关选项，解决SSL握手错误
+            'nocheckcertificate': True,  # 不验证SSL证书
+            'socket_timeout': 30,        # 增加套接字超时时间
+            'retries': 10,               # 增加重试次数
+            'fragment_retries': 10,      # 增加片段重试次数
         }
         
         # 添加日志配置
