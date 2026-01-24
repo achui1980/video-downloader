@@ -9,12 +9,13 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QCheckBox, QFileDialog, QMessageBox, QStackedWidget, QTextEdit,
                              QTableWidget, QTableWidgetItem, QHeaderView, QGroupBox, QFormLayout,
                              QApplication, QScrollArea, QFrame, QToolButton, QButtonGroup,
-                             QSizePolicy, QGridLayout)
+                             QSizePolicy, QGridLayout, QProgressDialog)
 from PyQt6.QtCore import Qt, QSize, QMetaObject, QThread
 from PyQt6.QtGui import QIcon, QFont, QAction
 import yt_dlp
 from download_manager import DownloadManager
 from download_thread import DownloadThread, AnalyzeThread
+from subtitle_merger import SubtitleMergeThread
 from custom_events import ShowMessageEvent, UpdateStatusEvent, UpdateVideoInfoEvent, handle_custom_event
 from utils import format_duration, format_size, format_time, get_language_code
 from history_manager import HistoryManager
@@ -23,6 +24,7 @@ from tabs.settings_tab import SettingsTab
 from styles import Styles
 from task_widget import TaskWidget
 from config import Config
+from translation_dialog import TranslationDialog
 
 class YoutubeDownloader(QMainWindow):
     def __init__(self):
@@ -30,9 +32,13 @@ class YoutubeDownloader(QMainWindow):
         self.download_threads = {}
         self.download_history = []
         self.active_tasks = {} # Map url to TaskWidget
+        self.subtitle_merge_thread = None
+        self.translation_dialog = None
         
         # 初始化历史记录管理器
         self.history_manager = HistoryManager()
+        # 加载配置
+        Config.load_config()
         # 加载历史记录
         self.load_history()
         self.initUI()
@@ -279,6 +285,10 @@ class YoutubeDownloader(QMainWindow):
         self.history_tab.request_clear_history.connect(self.clear_history)
         self.history_tab.request_export_history.connect(self.export_history)
         self.history_tab.set_history_data(self.download_history)
+        # 连接字幕合成信号
+        self.history_tab.request_merge_subtitle.connect(self.merge_subtitle)
+        # 连接字幕翻译信号
+        self.history_tab.request_translate_subtitle.connect(self.translate_subtitle)
         
         layout.addWidget(self.history_tab)
         self.pages.addWidget(page)
@@ -306,6 +316,51 @@ class YoutubeDownloader(QMainWindow):
         }
         if page_id in index_map:
             self.pages.setCurrentIndex(index_map[page_id])
+
+    def merge_subtitle(self, video_path, subtitle_path):
+        """处理字幕合成请求"""
+        # 创建进度对话框
+        self.progress_dialog = QProgressDialog("正在合成字幕...", "取消", 0, 0, self)
+        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self.progress_dialog.setMinimumDuration(0)
+        self.progress_dialog.setWindowTitle("字幕合成")
+        
+        # 创建线程
+        self.subtitle_merge_thread = SubtitleMergeThread(video_path, subtitle_path)
+        self.subtitle_merge_thread.progress_signal.connect(lambda msg: self.progress_dialog.setLabelText(msg))
+        self.subtitle_merge_thread.finished_signal.connect(self.on_merge_finished)
+        self.progress_dialog.canceled.connect(self.subtitle_merge_thread.cancel)
+        
+        self.subtitle_merge_thread.start()
+        
+    def on_merge_finished(self, success, message):
+        """字幕合成完成回调"""
+        self.progress_dialog.close()
+        if success:
+            QMessageBox.information(self, "成功", message)
+        else:
+            QMessageBox.critical(self, "失败", message)
+        
+        self.subtitle_merge_thread = None
+
+    def translate_subtitle(self, subtitle_path):
+        """处理字幕翻译请求"""
+        api_key = self.settings_tab.ai_api_key.text().strip()
+        base_url = self.settings_tab.ai_base_url.text().strip()
+        model = self.settings_tab.ai_model.text().strip()
+        
+        batch_size = 200
+        try:
+            batch_size = int(self.settings_tab.ai_batch_size.text().strip())
+        except ValueError:
+            batch_size = 200
+        
+        if not api_key:
+            QMessageBox.warning(self, "配置错误", "请先在设置中配置 ModelScope API Key")
+            return
+            
+        self.translation_dialog = TranslationDialog(self, api_key, base_url, model, subtitle_path, batch_size)
+        self.translation_dialog.show()
 
     # --- 以下是业务逻辑方法，保持原有逻辑不变 ---
     
@@ -541,7 +596,7 @@ class YoutubeDownloader(QMainWindow):
             if jp_check.isChecked(): selected_langs.append('ja')
             return selected_langs
         return None
-
+    
     def clear_history(self):
         self.download_history = []
         self.save_history()
