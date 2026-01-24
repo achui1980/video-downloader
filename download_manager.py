@@ -139,20 +139,37 @@ class DownloadManager:
         if subtitle_options and subtitle_options.get('enabled', False):
             ydl_opts['writesubtitles'] = True
             ydl_opts['writeautomaticsub'] = True
-            ydl_opts['subtitlesformat'] = 'srt'
             
-            if subtitle_options.get('language'):
+            # 使用 vtt 格式，然后转换为 srt
+            ydl_opts['subtitlesformat'] = 'vtt'
+            
+            # 指定字幕语言
+            if 'languages' in subtitle_options:
+                # 传入的是语言列表
+                ydl_opts['subtitleslangs'] = subtitle_options['languages']
+            elif subtitle_options.get('language'):
+                # 传入的是单个语言代码
                 ydl_opts['subtitleslangs'] = [subtitle_options['language']]
             else:
+                # 默认英文
                 ydl_opts['subtitleslangs'] = ['en']
             
             if 'postprocessors' not in ydl_opts:
                 ydl_opts['postprocessors'] = []
             
+            # 添加字幕转换后处理
             ydl_opts['postprocessors'].append({
                 'key': 'FFmpegSubtitlesConvertor',
                 'format': 'srt',
+                'when': 'before_dl', # 在下载前转换（如果可能）或者在合并前
             })
+            
+            # 确保视频中嵌入字幕
+            ydl_opts['embedsubtitles'] = True
+            
+            # 使用 Chrome Cookies 下载字幕
+            if use_chrome_cookies:
+                ydl_opts['cookiesfrombrowser'] = ('chrome',)
             
         # 速度限制
         if limit:

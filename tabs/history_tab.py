@@ -60,8 +60,8 @@ class HistoryTab(QWidget):
         # 清空表格
         self.history_table.setRowCount(0)
         
-        # 添加历史记录
-        for item in self.history_data:
+        # 添加历史记录 (倒序显示，最新的在最上面)
+        for item in reversed(self.history_data):
             row = self.history_table.rowCount()
             self.history_table.insertRow(row)
             
