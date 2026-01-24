@@ -4,14 +4,17 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
                             QTableWidget, QTableWidgetItem, QHeaderView, QFileDialog,
                             QMessageBox)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 import os
 from datetime import datetime
 
 class HistoryTab(QWidget):
-    def __init__(self, main_window):
+    request_clear_history = pyqtSignal()
+    request_export_history = pyqtSignal()
+    
+    def __init__(self):
         super().__init__()
-        self.main_window = main_window
+        self.history_data = []
         self.initUI()
         
     def initUI(self):
@@ -47,7 +50,9 @@ class HistoryTab(QWidget):
         
         history_layout.addLayout(history_buttons_layout)
         
-        # 填充历史记录表格
+    def set_history_data(self, history_data):
+        """设置历史记录数据并更新表格"""
+        self.history_data = history_data
         self.populate_history_table()
     
     def populate_history_table(self):
@@ -56,7 +61,7 @@ class HistoryTab(QWidget):
         self.history_table.setRowCount(0)
         
         # 添加历史记录
-        for item in self.main_window.download_history:
+        for item in self.history_data:
             row = self.history_table.rowCount()
             self.history_table.insertRow(row)
             
@@ -94,18 +99,8 @@ class HistoryTab(QWidget):
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                                      QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
-            self.main_window.download_history = []
-            self.history_table.setRowCount(0)
-            self.main_window.save_history()
-            self.main_window.populate_example_data()
+            self.request_clear_history.emit()
     
     def export_history(self):
         """导出历史记录到文件"""
-        file_path, _ = QFileDialog.getSaveFileName(self, "导出历史记录", 
-                                                  os.path.expanduser("~/Downloads/youtube_history.csv"),
-                                                  "CSV文件 (*.csv)")
-        if file_path:
-            if self.main_window.history_manager.export_history_to_csv(file_path, self.main_window.download_history):
-                QMessageBox.information(self, "导出成功", f"历史记录已导出到: {file_path}")
-            else:
-                QMessageBox.critical(self, "导出失败", "导出历史记录时出错")
+        self.request_export_history.emit()

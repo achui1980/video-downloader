@@ -1,136 +1,96 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-import yt_dlp
-from utils import format_size, format_time, format_duration
 import os
+import uuid
+import asyncio
+import yt_dlp
 from datetime import datetime
+from config import Config
 from my_logger import MyLogger
-class YouTubeDownloader:
-    """YouTube视频下载器核心类"""
+from utils import format_duration, format_size
+
+class DownloadManager:
+    _instance = None
     
-    @staticmethod
-    def extract_info(url, options=None, download=False):
-        """
-        提取视频信息或下载视频
+    def __init__(self):
+        self.tasks = {}
+        self.logger = MyLogger.get_instance(Config.get_log_dir())
         
-        Args:
-            url: YouTube视频URL
-            options: yt-dlp选项字典
-            download: 是否下载视频
-            
-        Returns:
-            视频信息字典
-        """
-        try:
-            with yt_dlp.YoutubeDL(options or {}) as ydl:
-                info = ydl.extract_info(url, download=download)
-                return info
-        except Exception as e:
-            raise Exception(f"处理视频时出错: {str(e)}")
-    
-    @staticmethod
-    def get_video_formats(info):
-        """
-        从视频信息中提取可用格式
-        
-        Args:
-            info: 视频信息字典
-            
-        Returns:
-            格式列表
-        """
-        formats = []
-        if 'formats' in info:
-            for fmt in info['formats']:
-                format_note = fmt.get('format_note', '')
-                if format_note:
-                    resolution = fmt.get('resolution', 'N/A')
-                    ext = fmt.get('ext', 'N/A')
-                    formats.append({
-                        'format_note': format_note,
-                        'resolution': resolution,
-                        'ext': ext,
-                        'format_id': fmt.get('format_id', '')
-                    })
-        return formats
-    
-    @staticmethod
-    def get_video_summary(info):
-        """
-        获取视频摘要信息
-        
-        Args:
-            info: 视频信息字典
-            
-        Returns:
-            摘要信息字典
-        """
-        return {
-            'title': info.get('title', '未知'),
-            'uploader': info.get('uploader', '未知'),
-            'duration': format_duration(info.get('duration', 0)),
-            'upload_date': info.get('upload_date', '未知'),
-            'view_count': info.get('view_count', 0),
-            'like_count': info.get('like_count', 0),
-            'thumbnail': info.get('thumbnail', '')
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def create_task(self, url, options=None):
+        """创建新的下载任务"""
+        task_id = str(uuid.uuid4())
+        self.tasks[task_id] = {
+            'id': task_id,
+            'url': url,
+            'status': 'pending',
+            'progress': 0,
+            'message': '等待开始',
+            'created_at': datetime.now(),
+            'options': options or {},
+            'file_path': None,
+            'thread': None  # 这里可能需要根据运行环境存储 Thread 或 asyncio Task
         }
-    
-    @staticmethod
-    def configure_logging(download_path, url=None):
-        """
-        配置yt-dlp的日志选项
-        
-        Args:
-            download_path: 下载目录路径
-            url: 视频URL (可选)
-            
-        Returns:
-            包含日志配置的选项字典
-        """
-        # 创建日志目录
-        log_dir = os.path.join(download_path, 'logs')
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-        
-        # 使用时间戳创建唯一的日志文件名
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        video_id = url.split('?v=')[-1].split('&')[0] if url and '?v=' in url else 'video'
-        log_file = os.path.join(log_dir, f'yt-dlp_{video_id}_{timestamp}.log')
-        custom_logger = MyLogger.get_instance(log_file)
-        # 配置日志选项
-        log_opts = {
-            # 移除错误的YoutubeDLLogger引用
-            'logger': custom_logger,
-            'logtostderr': False,  # 不将日志输出到stderr
-            'quiet': False,        # 不使用安静模式
-            'verbose': True,       # 使用详细模式
-            'writedescription': True,  # 写入视频描述
-            'writeinfojson': False,     # 写入视频信息JSON
-            'logfile': log_file
-        }
-        
-        return log_opts
-    
+        return task_id
+
+    def get_task(self, task_id):
+        return self.tasks.get(task_id)
+
+    def update_task_status(self, task_id, status, message=None, progress=None):
+        if task_id in self.tasks:
+            task = self.tasks[task_id]
+            task['status'] = status
+            if message:
+                task['message'] = message
+            if progress is not None:
+                task['progress'] = progress
+
     @staticmethod
     def prepare_download_options(format_option, download_path, subtitle_options=None, 
                                 limit=None, proxy=None, use_chrome_cookies=False, enable_logging=True, url=None):
-        """准备下载选项"""
+        """准备下载选项 - 迁移自 download.py"""
         ydl_opts = {
             'outtmpl': os.path.join(download_path, '%(title)s.%(ext)s'),
-            # 添加SSL相关选项，解决SSL握手错误
-            'nocheckcertificate': True,  # 不验证SSL证书
-            'socket_timeout': 30,        # 增加套接字超时时间
-            'retries': 10,               # 增加重试次数
-            'fragment_retries': 10,      # 增加片段重试次数
+            'nocheckcertificate': True,
+            'socket_timeout': 30,
+            'retries': 10,
+            'fragment_retries': 10,
         }
         
-        # 添加日志配置
+        # 日志配置
         if enable_logging:
-            log_opts = YouTubeDownloader.configure_logging(download_path, url)
-            ydl_opts.update(log_opts)
+            log_dir = os.path.join(download_path, 'logs')
+            if not os.path.exists(log_dir):
+                try:
+                    os.makedirs(log_dir)
+                except:
+                    pass
+            
+            # 简单的日志文件名生成
+            video_id = 'unknown'
+            if url:
+                if '?v=' in url:
+                    video_id = url.split('?v=')[-1].split('&')[0]
+                else:
+                    video_id = url.split('/')[-1]
+                    
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            log_file = os.path.join(log_dir, f'yt-dlp_{video_id}_{timestamp}.log')
+            
+            logger_instance = MyLogger.get_instance(log_file)
+            ydl_opts.update({
+                'logger': logger_instance,
+                'logtostderr': False,
+                'quiet': False,
+                'verbose': True,
+                'writedescription': True,
+                'writeinfojson': False,
+            })
         
-        # 格式选择
+        # 格式选择逻辑
         if format_option == "最佳质量":
             ydl_opts['format'] = 'bestvideo+bestaudio/best'
             ydl_opts['merge_output_format'] = 'mp4'
@@ -144,31 +104,24 @@ class YouTubeDownloader:
                 'preferredquality': '192',
             }]
         elif format_option == "仅字幕":
-            # 跳过视频下载，只下载字幕
             ydl_opts['skip_download'] = True
             ydl_opts['writesubtitles'] = True
             ydl_opts['writeautomaticsub'] = True
-            ydl_opts['subtitlesformat'] = 'vtt'  # 先下载为 VTT 格式
+            ydl_opts['subtitlesformat'] = 'vtt'
             
             if subtitle_options and 'languages' in subtitle_options:
                 ydl_opts['subtitleslangs'] = subtitle_options['languages']
             else:
-                # 默认下载中文字幕
                 ydl_opts['subtitleslangs'] = ['zh-Hans']
             
-            # 添加字幕处理器，确保转换为srt格式
             if 'postprocessors' not in ydl_opts:
                 ydl_opts['postprocessors'] = []
             
-            # 使用更明确的后处理器配置
             ydl_opts['postprocessors'].append({
                 'key': 'FFmpegSubtitlesConvertor',
                 'format': 'srt',
-                'when': 'before_dl',  # 在下载前运行后处理器
+                'when': 'before_dl',
             })
-            
-            # 确保后处理器运行
-            # ydl_opts['force_generic_extractor'] = False
         elif format_option == "1080p":
             ydl_opts['format'] = 'bestvideo[height<=1080]+bestaudio/best[height<=1080]'
             ydl_opts['merge_output_format'] = 'mp4'
@@ -181,24 +134,18 @@ class YouTubeDownloader:
         elif format_option == "360p":
             ydl_opts['format'] = 'bestvideo[height<=360]+bestaudio/best[height<=360]'
             ydl_opts['merge_output_format'] = 'mp4'
-        
+            
         # 字幕选项
         if subtitle_options and subtitle_options.get('enabled', False):
-            # 启用字幕下载
             ydl_opts['writesubtitles'] = True
             ydl_opts['writeautomaticsub'] = True
-            
-            # 设置字幕格式为srt
             ydl_opts['subtitlesformat'] = 'srt'
             
-            # 设置语言
             if subtitle_options.get('language'):
                 ydl_opts['subtitleslangs'] = [subtitle_options['language']]
             else:
-                # 默认下载所有可用字幕
                 ydl_opts['subtitleslangs'] = ['en']
             
-            # 添加字幕处理器，确保转换为srt格式
             if 'postprocessors' not in ydl_opts:
                 ydl_opts['postprocessors'] = []
             
@@ -206,21 +153,38 @@ class YouTubeDownloader:
                 'key': 'FFmpegSubtitlesConvertor',
                 'format': 'srt',
             })
-        
-        # 速度限制选项
+            
+        # 速度限制
         if limit:
             ydl_opts['ratelimit'] = limit
-        
-        # 代理选项
+            
+        # 代理
         if proxy:
             ydl_opts['proxy'] = proxy
             
-        # 添加Chrome浏览器Cookies选项
+        # Chrome Cookies
         if use_chrome_cookies:
             ydl_opts['cookiesfrombrowser'] = ('chrome',)
             
         return ydl_opts
-    
+
+    @staticmethod
+    def extract_info(url, options=None, download=False):
+        try:
+            with yt_dlp.YoutubeDL(options or {}) as ydl:
+                return ydl.extract_info(url, download=download)
+        except yt_dlp.utils.DownloadError as e:
+            # 区分不同类型的错误
+            error_msg = str(e)
+            if "Private video" in error_msg:
+                raise Exception("无法下载：这是一个私有视频")
+            elif "Sign in" in error_msg:
+                raise Exception("无法下载：需要登录才能观看")
+            else:
+                raise Exception(f"下载错误: {error_msg}")
+        except Exception as e:
+            raise Exception(f"处理视频时出错: {str(e)}")
+
     @staticmethod
     def get_download_info_from_result(info, format_option):
         """
@@ -269,3 +233,16 @@ class YouTubeDownloader:
                     result['resolution'] = f"{download_info['height']}p"
                 
         return result
+
+    @staticmethod
+    def get_video_summary(info):
+        """获取视频摘要信息"""
+        return {
+            'title': info.get('title', '未知'),
+            'uploader': info.get('uploader', '未知'),
+            'duration': format_duration(info.get('duration', 0)),
+            'upload_date': info.get('upload_date', '未知'),
+            'view_count': info.get('view_count', 0),
+            'like_count': info.get('like_count', 0),
+            'thumbnail': info.get('thumbnail', '')
+        }

@@ -6,9 +6,8 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QForm
 from PyQt6.QtCore import Qt
 
 class SettingsTab(QWidget):
-    def __init__(self, main_window):
+    def __init__(self):
         super().__init__()
-        self.main_window = main_window
         self.initUI()
         
     def initUI(self):

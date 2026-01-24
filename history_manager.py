@@ -8,7 +8,7 @@ from datetime import datetime
 class HistoryManager:
     def __init__(self, history_file=None):
         if history_file is None:
-            # 默认保存在用户目录下
+            # 优先使用用户目录下的文件，保持兼容性
             self.history_file = os.path.expanduser("~/youtube_downloader_history.json")
         else:
             self.history_file = history_file
