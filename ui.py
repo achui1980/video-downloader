@@ -324,6 +324,20 @@ class YoutubeDownloader(QMainWindow):
         if page_id in index_map:
             self.pages.setCurrentIndex(index_map[page_id])
 
+    def update_active_tasks_count(self):
+        """更新当前任务按钮上的计数显示"""
+        count = len(self.download_threads)
+        if count > 0:
+            self.nav_btns["tasks"].setText(f"⚡  当前任务 ({count})")
+        else:
+            self.nav_btns["tasks"].setText("⚡  当前任务")
+
+    def cleanup_thread(self, url):
+        """清理已结束的下载线程并更新计数"""
+        if url in self.download_threads:
+            del self.download_threads[url]
+        self.update_active_tasks_count()
+
     def merge_subtitle(self, video_path, subtitle_path):
         """处理字幕合成请求"""
         # 创建进度对话框
@@ -514,7 +528,7 @@ class YoutubeDownloader(QMainWindow):
         )
         
         # 切换到任务页
-        self.nav_btns["tasks"].click()
+        # self.nav_btns["tasks"].click() # 不再自动切换到任务页
         
         # 创建任务组件
         task_widget = TaskWidget(url, title=f"正在解析: {url}")
@@ -524,12 +538,21 @@ class YoutubeDownloader(QMainWindow):
         download_thread = DownloadThread(url, ydl_opts)
         download_thread.progress_signal.connect(task_widget.update_progress)
         download_thread.complete_signal.connect(lambda info: self.download_complete(url, info))
+        
+        # 错误和取消时，清理线程并更新计数
         download_thread.error_signal.connect(task_widget.set_error)
+        download_thread.error_signal.connect(lambda msg: self.cleanup_thread(url))
+        
         download_thread.cancelled_signal.connect(task_widget.set_cancelled)
+        download_thread.cancelled_signal.connect(lambda: self.cleanup_thread(url))
+        
         task_widget.cancel_requested.connect(lambda: self.cancel_download(url))
         
         self.download_threads[url] = download_thread
         download_thread.start()
+        
+        # 更新任务计数
+        self.update_active_tasks_count()
     
     def load_history(self):
         self.download_history = self.history_manager.load_history()
@@ -552,8 +575,8 @@ class YoutubeDownloader(QMainWindow):
         self.save_history()
         self.history_tab.set_history_data(self.download_history)
         
-        if url in self.download_threads:
-            del self.download_threads[url]
+        # 清理线程
+        self.cleanup_thread(url)
     
     def closeEvent(self, event):
         self.save_history()
