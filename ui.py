@@ -176,6 +176,13 @@ class YoutubeDownloader(QMainWindow):
         self.url_input.setMinimumHeight(45)
         input_row.addWidget(self.url_input)
         
+        self.paste_btn = QPushButton("粘贴")
+        self.paste_btn.setMinimumHeight(45)
+        self.paste_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.paste_btn.setToolTip("从剪切板粘贴链接")
+        self.paste_btn.clicked.connect(self.paste_from_clipboard)
+        input_row.addWidget(self.paste_btn)
+        
         self.analyze_btn = QPushButton("分析链接")
         self.analyze_btn.setMinimumHeight(45)
         self.analyze_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -364,6 +371,13 @@ class YoutubeDownloader(QMainWindow):
 
     # --- 以下是业务逻辑方法，保持原有逻辑不变 ---
     
+    def paste_from_clipboard(self):
+        """从剪切板粘贴内容到 URL 输入框"""
+        clipboard = QApplication.clipboard()
+        text = clipboard.text()
+        if text:
+            self.url_input.setText(text)
+
     def browse_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "选择下载文件夹", self.download_path.text())
         if folder:
