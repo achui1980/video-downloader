@@ -31,6 +31,7 @@ class AITranslator:
                     }
                 ],
                 stream=True,
+                max_tokens=20480, # 增加输出 token 限制，防止长字幕被截断
                 extra_body={"enable_thinking": True} # 适配 DeepSeek R1/V3
             )
             
