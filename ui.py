@@ -437,7 +437,7 @@ class YoutubeDownloader(QMainWindow):
     def generate_subtitle(self, video_path):
         """处理生成字幕请求"""
         dialog = GenerateSubtitleDialog(self)
-        if dialog.exec() != QDialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         selected_language = dialog.get_selected_language()
