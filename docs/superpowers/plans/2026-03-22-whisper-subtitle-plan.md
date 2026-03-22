@@ -171,7 +171,6 @@ class WhisperThread(QThread):
         super().__init__(parent)
         self.video_path = video_path
         self.language = language  # None 表示自动检测
-        self.is_cancelled = False
         self.temp_audio_path = None
 
     def run(self):
@@ -196,15 +195,32 @@ class WhisperThread(QThread):
             if not service.load_model("base"):
                 raise RuntimeError("Failed to load Whisper model")
 
+            # 检查取消
+            if self.isInterruptionRequested():
+                self.finished_signal.emit(False, "已取消")
+                return
+
             self.progress_signal.emit("正在提取音频...", 2, 4)
 
             # 提取音频
             self.temp_audio_path = service.extract_audio(self.video_path)
 
+            # 检查取消
+            if self.isInterruptionRequested():
+                self._cleanup()
+                self.finished_signal.emit(False, "已取消")
+                return
+
             self.progress_signal.emit("正在转写中...", 3, 4)
 
-            # 转写
+            # 转写（此步骤为阻塞调用，优雅取消需等待完成）
             result = service.transcribe(self.temp_audio_path, language=self.language)
+
+            # 检查取消（转写完成后检查）
+            if self.isInterruptionRequested():
+                self._cleanup()
+                self.finished_signal.emit(False, "已取消")
+                return
 
             # 生成 SRT
             srt_content = service.to_srt(result)
@@ -217,7 +233,7 @@ class WhisperThread(QThread):
             with open(srt_path, "w", encoding="utf-8") as f:
                 f.write(srt_content)
 
-            self.progress_signal.emit("完成!")
+            self.progress_signal.emit("完成!", 4, 4)
             self.finished_signal.emit(True, srt_path)
 
         except Exception as e:
@@ -236,7 +252,7 @@ class WhisperThread(QThread):
             self.temp_audio_path = None
 
     def cancel(self):
-        self.is_cancelled = True
+        self.requestInterruption()
 ```
 
 - [ ] **Step 2: 提交**
@@ -460,7 +476,7 @@ self.history_tab.request_generate_subtitle.connect(self.generate_subtitle)
 def generate_subtitle(self, video_path):
     """处理生成字幕请求"""
     dialog = GenerateSubtitleDialog(self)
-    if dialog.exec() != dialog.DialogCode.Accepted:
+    if dialog.exec() != QDialog.Accepted:
         return
 
     selected_language = dialog.get_selected_language()
@@ -468,6 +484,27 @@ def generate_subtitle(self, video_path):
     # 创建进度对话框
     self.progress_dialog = QProgressDialog("正在生成字幕...", "取消", 0, 0, self)
     self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+    self.progress_dialog.setMinimumDuration(0)
+    self.progress_dialog.setWindowTitle("生成字幕")
+
+    # 创建线程
+    self.whisper_thread = WhisperThread(video_path, selected_language)
+    # progress_signal(str, int, int) - 使用 lambda 只取第一个参数（状态消息）
+    self.whisper_thread.progress_signal.connect(lambda msg, *args: self.progress_dialog.setLabelText(msg))
+    self.whisper_thread.finished_signal.connect(lambda success, msg: self.on_generate_subtitle_finished(success, msg))
+    self.progress_dialog.canceled.connect(self.whisper_thread.cancel)
+
+    self.whisper_thread.start()
+
+def on_generate_subtitle_finished(self, success, message):
+    """字幕生成完成回调"""
+    self.progress_dialog.close()
+    if success:
+        QMessageBox.information(self, "成功", f"字幕已生成:\n{message}")
+    else:
+        QMessageBox.critical(self, "失败", message)
+
+    self.whisper_thread = None
     self.progress_dialog.setMinimumDuration(0)
     self.progress_dialog.setWindowTitle("生成字幕")
 
