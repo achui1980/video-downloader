@@ -21,6 +21,9 @@ def main():
     """应用程序入口点"""
     app = QApplication(sys.argv)
 
+    # 设置应用名称
+    app.setApplicationDisplayName("YT Downloader")
+
     # 设置应用图标
     icon_path = resource_path(os.path.join("assets", "icon.png"))
     if os.path.exists(icon_path):
