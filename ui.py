@@ -32,6 +32,7 @@ from PyQt6.QtWidgets import (
     QSizePolicy,
     QGridLayout,
     QProgressDialog,
+    QDialog,
 )
 from PyQt6.QtCore import Qt, QSize, QMetaObject, QThread
 from PyQt6.QtGui import QIcon, QFont, QAction
