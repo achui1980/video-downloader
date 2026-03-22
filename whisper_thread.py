@@ -95,8 +95,8 @@ class WhisperThread(QThread):
         if self.temp_audio_path and os.path.exists(self.temp_audio_path):
             try:
                 os.remove(self.temp_audio_path)
-            except:
-                pass
+            except Exception as e:
+                print(f"Warning: Failed to clean up temp audio: {e}")
             self.temp_audio_path = None
 
     def cancel(self):
