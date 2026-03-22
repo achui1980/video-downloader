@@ -29,6 +29,11 @@ class WhisperThread(QThread):
                     "FFmpeg not found. Please install ffmpeg: brew install ffmpeg"
                 )
 
+            # 检查取消
+            if self.isInterruptionRequested():
+                self.finished_signal.emit(False, "已取消")
+                return
+
             self.progress_signal.emit("正在加载 Whisper 模型...", 1, 4)
 
             # 导入服务（延迟导入避免启动慢）
