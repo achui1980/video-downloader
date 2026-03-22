@@ -505,27 +505,6 @@ def on_generate_subtitle_finished(self, success, message):
         QMessageBox.critical(self, "失败", message)
 
     self.whisper_thread = None
-    self.progress_dialog.setMinimumDuration(0)
-    self.progress_dialog.setWindowTitle("生成字幕")
-
-    # 创建线程
-    self.whisper_thread = WhisperThread(video_path, selected_language)
-    # progress_signal(str, int, int) - 使用 lambda 只取第一个参数（状态消息）
-    self.whisper_thread.progress_signal.connect(lambda msg, *args: self.progress_dialog.setLabelText(msg))
-    self.whisper_thread.finished_signal.connect(lambda success, msg: self.on_generate_subtitle_finished(success, msg))
-    self.progress_dialog.canceled.connect(self.whisper_thread.cancel)
-
-    self.whisper_thread.start()
-
-def on_generate_subtitle_finished(self, success, message):
-    """字幕生成完成回调"""
-    self.progress_dialog.close()
-    if success:
-        QMessageBox.information(self, "成功", f"字幕已生成:\n{message}")
-    else:
-        QMessageBox.critical(self, "失败", message)
-
-    self.whisper_thread = None
 ```
 
 - [ ] **Step 5: 提交**
