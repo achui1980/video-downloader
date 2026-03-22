@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
 )
 from PyQt6.QtCore import Qt
+from styles import Styles
 
 
 class GenerateSubtitleDialog(QDialog):
@@ -38,35 +39,7 @@ class GenerateSubtitleDialog(QDialog):
     def init_ui(self):
         self.setWindowTitle("生成字幕")
         self.setMinimumWidth(350)
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #2b2b2b;
-            }
-            QLabel {
-                color: #ffffff;
-            }
-            QComboBox {
-                background-color: #3e3e42;
-                color: #ffffff;
-                border: 1px solid #555;
-                padding: 5px;
-            }
-            QPushButton {
-                background-color: #3e3e42;
-                color: #ffffff;
-                border: none;
-                padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background-color: #4e4e52;
-            }
-            QPushButton[class="primary"] {
-                background-color: #0078d4;
-            }
-            QPushButton[class="primary"]:hover {
-                background-color: #1084d8;
-            }
-        """)
+        self.setStyleSheet(Styles.DARK_THEME)
 
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
@@ -96,7 +69,7 @@ class GenerateSubtitleDialog(QDialog):
         btn_layout.addWidget(cancel_btn)
 
         confirm_btn = QPushButton("确认")
-        confirm_btn.setProperty("class", "primary")
+        confirm_btn.setProperty("class", "PrimaryBtn")
         confirm_btn.clicked.connect(self.on_confirm)
         confirm_btn.setDefault(True)
         btn_layout.addWidget(confirm_btn)
