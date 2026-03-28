@@ -36,3 +36,5 @@ history.json
 .idea/
 .vscode/
 *.swp
+.opencode/
+graphify-out/
