@@ -7,7 +7,7 @@ import yt_dlp
 import sys
 
 from custom_events import ShowMessageEvent, UpdateStatusEvent, UpdateVideoInfoEvent
-from download import YouTubeDownloader
+from download_manager import DownloadManager
 
 class DownloadThread(QThread):
     progress_signal = pyqtSignal(dict)
@@ -75,12 +75,12 @@ class DownloadThread(QThread):
         # 确保信号在主线程中发送
         QApplication.processEvents()
         
-        # 强制终止线程
-        self.terminate()
-        self.wait(1000)  # 等待最多1秒让线程结束
+        # 等待线程自然结束，不使用terminate
+        # self.terminate()
+        # self.wait(1000)  # 等待最多1秒让线程结束
         
-        # 确保取消信号被发送
-        self.cancelled_signal.emit()
+        # 确保取消信号被发送（如果线程已经结束或者卡住，这里强制发送可能导致UI重复更新，但比不发送好）
+        # self.cancelled_signal.emit()
 
 
 # 分析线程类
@@ -97,8 +97,8 @@ class AnalyzeThread(QThread):
     def run(self):
         try:
             self.status_signal.emit("正在获取视频信息...")
-            # 使用YouTubeDownloader类分析视频
-            info = YouTubeDownloader.extract_info(self.url, self.ydl_opts, download=False)
+            # 使用DownloadManager类分析视频
+            info = DownloadManager.extract_info(self.url, self.ydl_opts, download=False)
             self.info_ready_signal.emit(info)
         except Exception as e:
             self.error_signal.emit(f"分析视频时出错: {str(e)}")

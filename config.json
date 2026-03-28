@@ -1,0 +1,24 @@
+{
+    "subtitle": {
+        "enabled": false,
+        "language": "自动",
+        "only_langs": [
+            "zh-Hans"
+        ]
+    },
+    "ai_translator": {
+        "api_key": "",
+        "base_url": "https://api-inference.modelscope.cn/v1",
+        "model": "deepseek-ai/DeepSeek-V3.2",
+        "batch_size": "200"
+    },
+    "proxy": {
+        "enabled": false,
+        "url": ""
+    },
+    "other": {
+        "limit_speed": false,
+        "limit_rate": "",
+        "chrome_cookies": false
+    }
+}
