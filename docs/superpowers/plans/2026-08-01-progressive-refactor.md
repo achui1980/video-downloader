@@ -81,11 +81,11 @@ class Config:
     DEFAULT_SYSTEM = "Mac OS"
 ```
 
-然后把 `settings` 字典里 `"api_key": "ms-b532b4e6-43fb-42ce-ba74-aa03affd9d7d"` 改为 `"api_key": ""`。其余代码（`get_log_dir`/`ensure_dirs`/`get_config_path`/`load_config`/`save_config`/`_merge_dict`）保持不变。
+然后把 `settings` 字典里 `"api_key": "ms-<redacted>"` 改为 `"api_key": ""`。其余代码（`get_log_dir`/`ensure_dirs`/`get_config_path`/`load_config`/`save_config`/`_merge_dict`）保持不变。
 
 - [ ] **Step 3: 修改 `config.json`，把真实 API Key 替换为占位符**
 
-把 `config.json` 中 `"api_key": "ms-46778f56-30e5-431e-8f81-16d65b4eda46"` 改为 `"api_key": ""`。
+把 `config.json` 中 `"api_key": "ms-<redacted>"` 改为 `"api_key": ""`。
 
 - [ ] **Step 4: 修改 `utils.py` 使用共享常量**
 
