@@ -2,7 +2,7 @@
 import os
 import sys
 
-APP_VERSION = os.environ.get('APP_VERSION', '1.0.0')
+APP_VERSION = os.environ.get('APP_VERSION', '1.0.0').lstrip('v')
 FFMPEG_DIR = os.environ.get('FFMPEG_DIR', '')
 
 datas = [
@@ -15,7 +15,7 @@ if FFMPEG_DIR and os.path.isdir(FFMPEG_DIR):
     for name in ('ffmpeg', 'ffprobe'):
         exe_name = name + ('.exe' if sys.platform == 'win32' else '')
         path = os.path.join(FFMPEG_DIR, exe_name)
-        if os.path.exists(path):
+        if os.path.isfile(path):
             binaries.append((path, 'ffmpeg'))
 
 icon_file = None
