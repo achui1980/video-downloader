@@ -53,11 +53,16 @@ jobs:
         run: pip install -r requirements-build.txt pyinstaller
       - name: Download FFmpeg
         run: |
-          curl -s "https://evermeet.cx/ffmpeg/info/ffmpeg/release" -o ffmpeg-info.json
-          URL="$(python3 -c "import json;print(json.load(open('ffmpeg-info.json'))['download']['zip'])")"
-          curl -L "$URL" -o ffmpeg.zip
+          case "$(uname -m)" in
+            arm64) MACH="arm64" ;;
+            x86_64) MACH="amd64" ;;
+            *) echo "unsupported arch: $(uname -m)"; exit 1 ;;
+          esac
+          curl -sL -o ffmpeg.zip "https://ffmpeg.martin-riedl.de/redirect/latest/macos/${MACH}/release/ffmpeg.zip"
+          curl -sL -o ffprobe.zip "https://ffmpeg.martin-riedl.de/redirect/latest/macos/${MACH}/release/ffprobe.zip"
           mkdir -p ffmpeg
           unzip -o ffmpeg.zip -d ffmpeg
+          unzip -o ffprobe.zip -d ffmpeg
       - name: Build with PyInstaller
         run: pyinstaller VideoDownloader.spec --noconfirm
         env:
@@ -83,11 +88,16 @@ jobs:
         run: pip install -r requirements-build.txt pyinstaller
       - name: Download FFmpeg
         run: |
-          curl -s "https://evermeet.cx/ffmpeg/info/ffmpeg/release" -o ffmpeg-info.json
-          URL="$(python3 -c "import json;print(json.load(open('ffmpeg-info.json'))['download']['zip'])")"
-          curl -L "$URL" -o ffmpeg.zip
+          case "$(uname -m)" in
+            arm64) MACH="arm64" ;;
+            x86_64) MACH="amd64" ;;
+            *) echo "unsupported arch: $(uname -m)"; exit 1 ;;
+          esac
+          curl -sL -o ffmpeg.zip "https://ffmpeg.martin-riedl.de/redirect/latest/macos/${MACH}/release/ffmpeg.zip"
+          curl -sL -o ffprobe.zip "https://ffmpeg.martin-riedl.de/redirect/latest/macos/${MACH}/release/ffprobe.zip"
           mkdir -p ffmpeg
           unzip -o ffmpeg.zip -d ffmpeg
+          unzip -o ffprobe.zip -d ffmpeg
       - name: Build with PyInstaller
         run: pyinstaller VideoDownloader.spec --noconfirm
         env:
@@ -116,6 +126,10 @@ jobs:
           curl -L "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" -o ffmpeg.tar.xz
           mkdir -p ffmpeg
           tar -xJf ffmpeg.tar.xz --strip-components=1 -C ffmpeg
+      - name: Install appimage-builder host deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y squashfs-tools strace patchelf fakeroot
       - name: Build with PyInstaller
         run: pyinstaller VideoDownloader.spec --noconfirm
         env:
@@ -128,7 +142,9 @@ jobs:
       - name: Build AppImage
         run: |
           export APPIMAGE_EXTRACT_AND_RUN=1
-          appimage-builder --recipe scripts/linux/AppImageBuilder.yml
+          appimage-builder --recipe scripts/linux/AppImageBuilder.yml --skip-tests
+        env:
+          VERSION: ${{ github.ref_name }}
       - name: Upload release
         uses: softprops/action-gh-release@v2
         with:

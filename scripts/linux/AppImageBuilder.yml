@@ -5,7 +5,7 @@ AppDir:
     id: com.yt-downloader.app
     name: VideoDownloader
     icon: video-downloader
-    version: "{{version}}"
+    version: "{{VERSION}}"
     exec: VideoDownloader
     exec_args: $@
   apt:
@@ -43,3 +43,4 @@ AppDir:
 AppImage:
   arch: x86_64
   update-information: none
+  file_name: dist/VideoDownloader-{{VERSION}}-x86_64.AppImage
