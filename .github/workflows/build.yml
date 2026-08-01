@@ -1,0 +1,135 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: pip install -r requirements-build.txt pyinstaller
+      - name: Download FFmpeg
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg-dl
+          New-Item -ItemType Directory -Force -Path ffmpeg
+          Copy-Item "ffmpeg-dl/ffmpeg-*/bin/ffmpeg.exe" ffmpeg/
+          Copy-Item "ffmpeg-dl/ffmpeg-*/bin/ffprobe.exe" ffmpeg/
+      - name: Build with PyInstaller
+        run: pyinstaller VideoDownloader.spec --noconfirm
+        env:
+          APP_VERSION: ${{ github.ref_name }}
+          FFMPEG_DIR: ffmpeg
+      - name: Build installer
+        shell: pwsh
+        run: |
+          choco install innosetup -y
+          $ver = "${{ github.ref_name }}" -replace '^v',''
+          ISCC.exe /DMyAppVersion=$ver "scripts\windows\installer.iss"
+      - name: Upload release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/setup/VideoDownloader-*-x64-setup.exe
+
+  macos-arm64:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: pip install -r requirements-build.txt pyinstaller
+      - name: Download FFmpeg
+        run: |
+          curl -s "https://evermeet.cx/ffmpeg/info/ffmpeg/release" -o ffmpeg-info.json
+          URL="$(python3 -c "import json;print(json.load(open('ffmpeg-info.json'))['download']['zip'])")"
+          curl -L "$URL" -o ffmpeg.zip
+          mkdir -p ffmpeg
+          unzip -o ffmpeg.zip -d ffmpeg
+      - name: Build with PyInstaller
+        run: pyinstaller VideoDownloader.spec --noconfirm
+        env:
+          APP_VERSION: ${{ github.ref_name }}
+          FFMPEG_DIR: ffmpeg
+      - name: Build dmg
+        run: |
+          ver="${{ github.ref_name }}"
+          hdiutil create -volname "VideoDownloader" -srcfolder dist/VideoDownloader.app -ov -format UDZO dist/VideoDownloader-${ver}-arm64.dmg
+      - name: Upload release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/VideoDownloader-*-arm64.dmg
+
+  macos-intel:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: pip install -r requirements-build.txt pyinstaller
+      - name: Download FFmpeg
+        run: |
+          curl -s "https://evermeet.cx/ffmpeg/info/ffmpeg/release" -o ffmpeg-info.json
+          URL="$(python3 -c "import json;print(json.load(open('ffmpeg-info.json'))['download']['zip'])")"
+          curl -L "$URL" -o ffmpeg.zip
+          mkdir -p ffmpeg
+          unzip -o ffmpeg.zip -d ffmpeg
+      - name: Build with PyInstaller
+        run: pyinstaller VideoDownloader.spec --noconfirm
+        env:
+          APP_VERSION: ${{ github.ref_name }}
+          FFMPEG_DIR: ffmpeg
+      - name: Build dmg
+        run: |
+          ver="${{ github.ref_name }}"
+          hdiutil create -volname "VideoDownloader" -srcfolder dist/VideoDownloader.app -ov -format UDZO dist/VideoDownloader-${ver}-x86_64.dmg
+      - name: Upload release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/VideoDownloader-*-x86_64.dmg
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: pip install -r requirements-build.txt pyinstaller appimage-builder
+      - name: Download FFmpeg
+        run: |
+          curl -L "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz" -o ffmpeg.tar.xz
+          mkdir -p ffmpeg
+          tar -xJf ffmpeg.tar.xz --strip-components=1 -C ffmpeg
+      - name: Build with PyInstaller
+        run: pyinstaller VideoDownloader.spec --noconfirm
+        env:
+          APP_VERSION: ${{ github.ref_name }}
+          FFMPEG_DIR: ffmpeg
+      - name: Prepare AppDir
+        run: |
+          mkdir -p dist/VideoDownloader/usr/share/icons/hicolor/512x512/apps
+          cp assets/icon.png dist/VideoDownloader/usr/share/icons/hicolor/512x512/apps/video-downloader.png
+      - name: Build AppImage
+        run: |
+          export APPIMAGE_EXTRACT_AND_RUN=1
+          appimage-builder --recipe scripts/linux/AppImageBuilder.yml
+      - name: Upload release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/VideoDownloader-*.AppImage
