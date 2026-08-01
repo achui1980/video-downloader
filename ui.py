@@ -143,6 +143,12 @@ class YoutubeDownloader(QMainWindow):
         self.tasks_page = TasksPage()
         self.pages.addWidget(self.tasks_page)
 
+        history_page = QWidget()
+        history_layout = QVBoxLayout(history_page)
+        history_title = QLabel("历史记录")
+        history_title.setObjectName("PageTitle")
+        history_layout.addWidget(history_title)
+
         self.history_tab = HistoryTab()
         self.history_tab.request_clear_history.connect(self.clear_history)
         self.history_tab.request_export_history.connect(self.export_history)
@@ -150,10 +156,18 @@ class YoutubeDownloader(QMainWindow):
         self.history_tab.request_merge_subtitle.connect(self.merge_subtitle)
         self.history_tab.request_translate_subtitle.connect(self.translate_subtitle)
         self.history_tab.request_generate_subtitle.connect(self.generate_subtitle)
-        self.pages.addWidget(self.history_tab)
+        history_layout.addWidget(self.history_tab)
+        self.pages.addWidget(history_page)
+
+        settings_page = QWidget()
+        settings_layout = QVBoxLayout(settings_page)
+        settings_title = QLabel("设置")
+        settings_title.setObjectName("PageTitle")
+        settings_layout.addWidget(settings_title)
 
         self.settings_tab = SettingsTab()
-        self.pages.addWidget(self.settings_tab)
+        settings_layout.addWidget(self.settings_tab)
+        self.pages.addWidget(settings_page)
 
         self.controller = DownloadController(self.tasks_page, self)
         self.controller.active_count_changed.connect(self.update_active_tasks_count)
