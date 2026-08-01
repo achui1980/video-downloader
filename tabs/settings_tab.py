@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QForm
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QAction
 from config import Config
+from download_options import DownloadSettings
 
 class SettingsTab(QWidget):
     def __init__(self):
@@ -186,6 +187,37 @@ class SettingsTab(QWidget):
         self.limit_input.setText(s['other']['limit_rate'])
         self.limit_input.setEnabled(s['other']['limit_speed'])
         self.chrome_cookies_check.setChecked(s['other']['chrome_cookies'])
+
+    def get_settings(self) -> DownloadSettings:
+        """读取当前 UI 值，返回设置快照。替代外部直接读控件。"""
+        only_langs = []
+        if self.zh_subtitle_check.isChecked():
+            only_langs.append('zh-Hans')
+        if self.en_subtitle_check.isChecked():
+            only_langs.append('en')
+        if self.jp_subtitle_check.isChecked():
+            only_langs.append('ja')
+
+        batch_size = 200
+        try:
+            batch_size = int(self.ai_batch_size.text().strip() or "200")
+        except ValueError:
+            batch_size = 200
+
+        return DownloadSettings(
+            subtitle_enabled=self.subtitle_check.isChecked(),
+            subtitle_language=self.subtitle_lang_combo.currentText(),
+            only_langs=only_langs,
+            ai_api_key=self.ai_api_key.text().strip(),
+            ai_base_url=self.ai_base_url.text().strip(),
+            ai_model=self.ai_model.text().strip(),
+            ai_batch_size=batch_size,
+            proxy_enabled=self.proxy_check.isChecked(),
+            proxy_url=self.proxy_input.text().strip(),
+            limit_speed=self.limit_check.isChecked(),
+            limit_rate=self.limit_input.text().strip(),
+            chrome_cookies=self.chrome_cookies_check.isChecked(),
+        )
 
     def setup_connections(self):
         """连接信号到保存配置逻辑"""

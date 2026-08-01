@@ -50,10 +50,6 @@ class AITranslator:
         except Exception as e:
             print(f"Translation error: {e}")
             raise e
-                        
-        except Exception as e:
-            print(f"Translation error: {e}")
-            raise e
 
 class SubtitleParser:
     @staticmethod
