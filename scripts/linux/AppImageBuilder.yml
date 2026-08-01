@@ -1,0 +1,45 @@
+version: 1
+AppDir:
+  path: ../../dist/VideoDownloader
+  app_info:
+    id: com.yt-downloader.app
+    name: VideoDownloader
+    icon: video-downloader
+    version: "{{version}}"
+    exec: VideoDownloader
+    exec_args: $@
+  apt:
+    arch: amd64
+    allow_unauthenticated: true
+    sources:
+      - sourceline: "deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy main universe"
+    packages:
+      - libglib2.0-0
+      - libxcb-icccm4
+      - libxcb-keysyms1
+      - libxcb-image0
+      - libxcb-randr0
+      - libxcb-render-util0
+      - libxcb-shape0
+      - libxcb-xinerama0
+      - libxcb-xkb1
+      - libxkbcommon-x11-0
+      - libdbus-1-3
+      - libegl1
+      - libgl1
+      - libfontconfig1
+      - libfreetype6
+  files:
+    exclude:
+      - usr/share/man
+      - usr/share/doc
+  test:
+    ubuntu:
+      image: appimagecrafters/tests-env:stable
+      command: ./AppRun
+    archlinux:
+      image: appimagecrafters/tests-env-archlinux:latest
+      command: ./AppRun
+AppImage:
+  arch: x86_64
+  update-information: none
