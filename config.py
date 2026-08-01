@@ -1,6 +1,19 @@
 import os
+import sys
 import json
 import constants
+
+def _app_data_dir():
+    """返回用户数据目录。冻结态下 bundle 只读，需重定向到用户目录。"""
+    if getattr(sys, 'frozen', False):
+        if sys.platform == 'darwin':
+            base = os.path.expanduser('~/Library/Application Support')
+        elif sys.platform == 'win32':
+            base = os.environ.get('APPDATA', os.path.expanduser('~'))
+        else:
+            base = os.environ.get('XDG_CONFIG_HOME', os.path.expanduser('~/.config'))
+        return os.path.join(base, 'VideoDownloader')
+    return os.path.dirname(os.path.abspath(__file__))
 
 class Config:
     # 路径配置
@@ -49,8 +62,7 @@ class Config:
     def get_log_dir(base_path=None):
         if base_path:
             return os.path.join(base_path, Config.DEFAULT_LOG_DIR_NAME)
-        app_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(app_dir, Config.DEFAULT_LOG_DIR_NAME)
+        return os.path.join(_app_data_dir(), Config.DEFAULT_LOG_DIR_NAME)
 
     @staticmethod
     def ensure_dirs(path):
@@ -62,8 +74,7 @@ class Config:
 
     @staticmethod
     def get_config_path():
-        app_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(app_dir, Config.CONFIG_FILE_NAME)
+        return os.path.join(_app_data_dir(), Config.CONFIG_FILE_NAME)
 
     @classmethod
     def load_config(cls):
@@ -83,6 +94,7 @@ class Config:
         """保存配置到文件"""
         config_path = cls.get_config_path()
         try:
+            os.makedirs(os.path.dirname(config_path), exist_ok=True)
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(cls.settings, f, indent=4, ensure_ascii=False)
         except Exception as e:
