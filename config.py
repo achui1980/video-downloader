@@ -1,6 +1,6 @@
 import os
 import json
-from constants import DEFAULT_FORMAT
+import constants
 
 class Config:
     # 路径配置
@@ -18,7 +18,7 @@ class Config:
     API_PORT = 8765
     
     # 下载配置
-    DEFAULT_FORMAT = DEFAULT_FORMAT
+    DEFAULT_FORMAT = constants.DEFAULT_FORMAT
     DEFAULT_SYSTEM = "Mac OS"
     
     # 运行时配置存储
