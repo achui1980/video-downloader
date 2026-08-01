@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from constants import LANGUAGE_CODES
+
 def format_duration(seconds):
     """格式化视频时长"""
     if not seconds:
         return "未知"
-    
+
     m, s = divmod(int(seconds), 60)
     h, m = divmod(m, 60)
-    
+
     if h > 0:
         return f"{h}:{m:02d}:{s:02d}"
     else:
@@ -27,9 +29,8 @@ def format_size(bytes):
 
 def format_time(seconds):
     """将秒数格式化为时分秒格式，精确到秒"""
-    # 确保输入是整数
     seconds = int(seconds)
-    
+
     if seconds < 60:
         return f"{seconds}秒"
     elif seconds < 3600:
@@ -42,9 +43,4 @@ def format_time(seconds):
 
 def get_language_code(language_name):
     """将语言名称转换为语言代码"""
-    language_map = {
-        "中文": "zh-Hans",
-        "英文": "en",
-        "日文": "ja"
-    }
-    return language_map.get(language_name, None)
+    return LANGUAGE_CODES.get(language_name, None)

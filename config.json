@@ -7,7 +7,7 @@
         ]
     },
     "ai_translator": {
-        "api_key": "ms-46778f56-30e5-431e-8f81-16d65b4eda46",
+        "api_key": "",
         "base_url": "https://api-inference.modelscope.cn/v1",
         "model": "deepseek-ai/DeepSeek-V3.2",
         "batch_size": "200"
