@@ -66,8 +66,8 @@ class DownloadManager:
             if not os.path.exists(log_dir):
                 try:
                     os.makedirs(log_dir)
-                except:
-                    pass
+                except OSError as e:
+                    print(f"创建日志目录失败 {log_dir}: {e}")
             
             # 简单的日志文件名生成
             video_id = 'unknown'
