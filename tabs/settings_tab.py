@@ -7,6 +7,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon, QAction
 from config import Config
 from download_options import DownloadSettings
+from utils import get_app_version
 
 class SettingsTab(QWidget):
     def __init__(self):
@@ -148,6 +149,13 @@ class SettingsTab(QWidget):
         settings_layout.addWidget(other_group)
         
         settings_layout.addStretch(1)
+
+        self.version_label = QLabel(f"VideoDownloader v{get_app_version()}")
+        self.version_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.version_label.setStyleSheet(
+            "font-size: 12px; color: #8a8a8e; padding: 8px;"
+        )
+        settings_layout.addWidget(self.version_label)
 
     def toggle_password_visibility(self):
         """切换 API Key 的显示/隐藏状态"""

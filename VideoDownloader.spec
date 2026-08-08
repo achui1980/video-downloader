@@ -1,13 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
 import sys
+import tempfile
 
 APP_VERSION = os.environ.get('APP_VERSION', '1.0.0').lstrip('v')
 FFMPEG_DIR = os.environ.get('FFMPEG_DIR', '')
 
+version_file = os.path.join(tempfile.gettempdir(), 'video-downloader-version.txt')
+with open(version_file, 'w', encoding='utf-8') as f:
+    f.write(APP_VERSION)
+
 datas = [
     ('README.md', '.'),
     ('assets/icon.png', 'assets'),
+    (version_file, '.'),
 ]
 
 binaries = []
