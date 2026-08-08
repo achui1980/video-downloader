@@ -21,6 +21,25 @@ from constants import FORMAT_OPTIONS
 from utils import format_duration
 
 
+def _max_height_from_info(info):
+    """从分析结果中计算当前网络条件下可获取的最大视频高度。"""
+    heights = [
+        fmt.get("height") or 0
+        for fmt in info.get("formats", [])
+        if isinstance(fmt, dict) and fmt.get("height")
+    ]
+    return max(heights) if heights else None
+
+
+def _target_height_for(format_option):
+    """返回所选格式对应的目标高度；不设上限或非视频格式返回 None。"""
+    if format_option in ("最佳质量", "仅视频"):
+        return 720
+    if format_option in ("1080p", "720p", "480p", "360p"):
+        return int(format_option[:-1])
+    return None
+
+
 class NewDownloadPage(QWidget):
     """新建下载页：纯 UI 表面，通过信号上报意图，不碰设置页和其他页面。"""
 
@@ -29,6 +48,8 @@ class NewDownloadPage(QWidget):
 
     def __init__(self):
         super().__init__()
+        self.max_available_height = None
+        self.analyzed_url = None
         self.init_ui()
 
     def init_ui(self):
@@ -150,6 +171,8 @@ class NewDownloadPage(QWidget):
         self.analyze_btn.setEnabled(False)
         self.video_info_card.setVisible(True)
         self.video_info_label.setText("正在获取视频信息，请稍候...")
+        self.max_available_height = None
+        self.analyzed_url = None
         self.analyze_requested.emit(url)
 
     def request_download(self):
@@ -157,19 +180,46 @@ class NewDownloadPage(QWidget):
         if not url:
             QMessageBox.warning(self, "错误", "请输入有效的URL")
             return
+        if not self._confirm_quality_downgrade(url):
+            return
         self.download_requested.emit(
             url, self.format_combo.currentText(), self.download_path.text()
         )
+
+    def _confirm_quality_downgrade(self, url):
+        """若所选质量在当前网络条件下无法达到，弹窗确认后再下载。"""
+        if self.max_available_height is None or url != self.analyzed_url:
+            return True
+        target = _target_height_for(self.format_combo.currentText())
+        if target is None or self.max_available_height >= target:
+            return True
+        reply = QMessageBox.warning(
+            self,
+            "质量降级提示",
+            f"当前网络条件下该视频最大仅支持 {self.max_available_height}p，\n"
+            f"选择的「{self.format_combo.currentText()}」将实际降级为 "
+            f"{self.max_available_height}p。\n\n是否继续下载？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        return reply == QMessageBox.StandardButton.Yes
 
     # ---- 分析结果展示（由 ui.py 信号驱动）----
 
     def show_video_info(self, info):
         if not info:
             return
+        self.analyzed_url = info.get("webpage_url") or info.get("url")
+        self.max_available_height = _max_height_from_info(info)
+
         info_text = f"<b>{info.get('title', '未知')}</b><br>"
         info_text += f"上传者: {info.get('uploader', '未知')} | "
         info_text += f"时长: {format_duration(info.get('duration', 0))} | "
         info_text += f"日期: {info.get('upload_date', '未知')}<br>"
+
+        if self.max_available_height:
+            info_text += f"最大可用分辨率: {self.max_available_height}p"
+        else:
+            info_text += "最大可用分辨率: 未知"
 
         subtitles = info.get("subtitles", {})
         auto_captions = info.get("automatic_captions", {})
@@ -192,9 +242,9 @@ class NewDownloadPage(QWidget):
             langs_str = ", ".join(display_langs)
             if len(all_langs) > 5:
                 langs_str += f" 等 {len(all_langs) + len(display_langs)} 种语言"
-            info_text += f"支持字幕: {langs_str}"
+            info_text += f"<br>支持字幕: {langs_str}"
         else:
-            info_text += "支持字幕: 无"
+            info_text += "<br>支持字幕: 无"
 
         self.video_info_label.setText(info_text)
         self.video_info_card.setVisible(True)

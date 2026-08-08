@@ -248,7 +248,22 @@ class DownloadManager:
                     result['resolution'] = download_info['resolution']
                 elif 'height' in download_info and download_info['height']:
                     result['resolution'] = f"{download_info['height']}p"
-                
+                else:
+                    # 合并下载时首个条目可能缺失高度，取所有条目的最大高度
+                    heights = [
+                        d.get('height', 0)
+                        for d in info['requested_downloads']
+                        if isinstance(d, dict) and d.get('height')
+                    ]
+                    if heights:
+                        result['resolution'] = f"{max(heights)}p"
+                    elif download_info.get('format_id'):
+                        fmt = download_info.get('format_id', '')
+                        for part in fmt.replace('+', ' ').split():
+                            if part.isdigit() and int(part) > 100:
+                                result['resolution'] = f"{int(part)}p"
+                                break
+        
         return result
 
     @staticmethod
